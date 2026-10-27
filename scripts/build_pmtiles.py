@@ -34,8 +34,8 @@ with write(str(DATA/'zeeland.pmtiles')) as writer:
  for tid,z,x,y in sorted(tiles):
   span=2*R/(2**z);b=(-R+x*span,R-(y+1)*span,-R+(x+1)*span,R-y*span);clip=box(*b);layers=[]
   for name,d in frames.items():
-   if name=='buurten' and z<8:continue
-   if name=='wijken' and z<7:continue
+
+
    feats=[]
    for i in d.sindex.query(clip,predicate='intersects'):
     row=d.iloc[i];geom=row.geometry.intersection(clip).simplify(span/4096*.6,preserve_topology=True)
@@ -49,3 +49,4 @@ with write(str(DATA/'zeeland.pmtiles')) as writer:
  writer.finalize(dict(tile_type=TileType.MVT,tile_compression=Compression.GZIP,min_lon_e7=33000000,min_lat_e7=512000000,max_lon_e7=42500000,max_lat_e7=518000000,center_zoom=9),dict(name='Zeeland · CBS 2024',attribution='CBS en Kadaster · CC BY 4.0',vector_layers=[dict(id=n,fields={'code':'String','name':'String','water':'String'},minzoom=6,maxzoom=12) for n in frames]))
 (DATA/'areas.json').write_text(json.dumps(search,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
 print('PMTiles validated:',count,'tiles;',len(search),'searchable areas;', (DATA/'zeeland.pmtiles').stat().st_size,'bytes')
+
