@@ -42,3 +42,5 @@ Mortaliteit is **niet** slachtoffers/getroffenen en **geen** jaarlijkse overlijd
 GitHub Pages: publiceer de `main`-branch, map `/ (root)`. Alle URLs zijn relatief en werken onder de repository-submap. Er is geen buildstap nodig.
 
 Bronnen: [CBS / PDOK](https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1?f=html&lang=nl), [PMTiles](https://docs.protomaps.com/pmtiles/maplibre), [MapLibre GL](https://maplibre.org/maplibre-gl-js/docs/).
+
+DP715: negen oorspronkelijke berekeningen zijn op 28 oktober 2026 vanuit de voormalige map 29 naar 29_clean overgenomen. De bijbehorende oorspronkelijke templates staan afzonderlijk onder DP715_bron_template; bestaande opgeschoonde templates blijven behouden. Dit zijn geïmporteerde resultaten, geen nieuwe berekeningen met het opgeschoonde netwerk. Alleen waterdiepte is beschikbaar; gekoppelde SSM-gevolgen ontbreken.
