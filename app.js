@@ -19,7 +19,7 @@ const clean=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt
 const url=p=>new URL(p,location.href).href;
 function message(text){$('map-message').textContent=text||'';$('map-message').hidden=!text;}
 function loading(active){$('loading-bar').hidden=!active;$('map').setAttribute('aria-busy',String(active));}
-async function json(path){const r=await fetch(path);if(!r.ok)throw new Error(`${path}: ${r.status}`);return r.json();}
+async function json(path){const r=await fetch(path,{cache:"no-cache"});if(!r.ok)throw new Error(`${path}: ${r.status}`);return r.json();}
 function visibleFilter(){return ['all',['==',['get','water'],'NEE'],...(state.municipality?[['==',['get','gemeentecode'],state.municipality]]:[])];}
 function applyFilters(){for(const id of ['land','buurt-fill','buurt-hit','buurt-selected','gemeenten-line','wijken-line','buurten-line'])if(map.getLayer(id))map.setFilter(id,visibleFilter());if(map.getLayer('municipality-mask'))map.setFilter('municipality-mask',state.municipality?['all',['==',['get','water'],'NEE'],['!=',['get','gemeentecode'],state.municipality]]:['==',['get','code'],'__none__']);markers.forEach(({marker,code})=>marker.getElement().style.display=!state.municipality||code===state.municipality?'':'none');}
 function fitArea(area){map.fitBounds([[area.bounds[0],area.bounds[1]],[area.bounds[2],area.bounds[3]]],{padding:{top:110,bottom:145,left:45,right:45},maxZoom:13,duration:700});}
@@ -66,6 +66,7 @@ async function init(){try{[catalog,areas,availability]=await Promise.all([json('
 $('legend-toggle').onclick=()=>{const open=document.querySelector('.legend').classList.toggle('expanded');$('legend-toggle').setAttribute('aria-expanded',String(open));};
 $('mobile-back').onclick=()=>{document.body.classList.remove('settings-open');$('mobile-settings').setAttribute('aria-expanded','false');window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});};
 init();
+
 
 
 
