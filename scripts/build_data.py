@@ -3,6 +3,7 @@ Run with OSGeo4W Python (geopandas, GDAL, numpy). Paths remain local.
 """
 from pathlib import Path
 import json, re, base64, hashlib
+from datetime import date
 import geopandas as gpd
 import numpy as np
 from osgeo import gdal, ogr, osr
@@ -69,16 +70,12 @@ def overlay(ds,a):
  west,north=t.transform(gt[0],gt[3]);east,south=t.transform(gt[0]+w.RasterXSize*gt[1],gt[3]+w.RasterYSize*gt[5])
  return {'url':'data:image/png;base64,'+base64.b64encode(png).decode(),'bounds':[[south,west],[north,east]]}
 
-sources={}
-for inp in sorted((POST/'Invoer SSM').glob('DR*')):
- output=POST/'Output SSM'/inp.name
- if (inp/'scenario.json').exists() and (output/'Totaalschade.tif').exists():
-  sources[inp.name]=(inp,output,json.loads((inp/'scenario.json').read_text()))
-for r in json.loads((BASE/'outputs/DP360_LIR_20261026/manifest.json').read_text()):
- if r.get('returncode')==0:sources[r['scenario']]=(Path(r['input_directory']),Path(r['output_directory']),r)
+expansion=json.loads((BASE/'outputs/atlas_expansion_20261028/sources.json').read_text(encoding='utf-8'))
+sources={r['id']:(Path(r['inp']),Path(r['result'])if r['result']else None,r['meta'])for r in expansion['sources']}
 index=[];qa=[]
 for sid,(inp,result,meta) in sorted(sources.items()):
- metrics={'depth':inp/'waterdiepte.tif','damage':result/'Totaalschade.tif','fatalities':result/'Slachtoffers.tif','affected':result/'Slachtoffers_getroffenen.tif','mortality':result/'Slachtoffers_mortaliteit.tif'}
+ metrics={'depth':inp/'waterdiepte.tif'}
+ if result:metrics.update({'damage':result/'Totaalschade.tif','fatalities':result/'Slachtoffers.tif','affected':result/'Slachtoffers_getroffenen.tif','mortality':result/'Slachtoffers_mortaliteit.tif'})
  if not all(p.exists() for p in metrics.values()):continue
  data={}; totals={};depth_image=None
  for metric,path in metrics.items():
@@ -87,10 +84,11 @@ for sid,(inp,result,meta) in sorted(sources.items()):
   valid=np.isfinite(a)&(zone>0)
   if metric in ['damage','fatalities','affected']:
    totals[metric]=float(a[valid].sum())
-  for i,b in buurten[land].iterrows():
-   mask=valid&(zone==i+1)
-   if not mask.any():continue
-   vals=a[mask]
+  zone_ids=zone[valid];valid_values=a[valid];order=np.argsort(zone_ids,kind='stable')
+  ids,starts=np.unique(zone_ids[order],return_index=True)
+  groups=np.split(valid_values[order],starts[1:])
+  for zid,vals in zip(ids,groups):
+   b=buurten.iloc[int(zid)-1]
    row=data.setdefault(b.buurtcode,{})
    if metric=='mortality':
     pos=vals[vals>0];row[metric]=float(np.median(pos)*100) if len(pos) else None
@@ -101,7 +99,8 @@ for sid,(inp,result,meta) in sorted(sources.items()):
   if metric in totals:
    check=sum(r.get(metric,0) for r in data.values());assert np.isclose(check,totals[metric],rtol=1e-10,atol=1e-5)
   ds=None
- desc=dict(id=sid,dr=meta['dr'],dp=meta['dp'],zss=meta['zss'],variant=meta['variant'],end_day=meta.get('end_day',10),depth_method=meta.get('depth_speed_method','onbekend'),buurten=len(data),totals=totals)
+ desc=dict(id=sid,dr=meta['dr'],dp=meta['dp'],zss=meta['zss'],variant=meta['variant'],end_day=meta.get('end_day',10),depth_method=meta.get('depth_speed_method','onbekend'),buurten=len(data),totals=totals,available_metrics=list(metrics),source_group='29_clean'if meta['dr']==29 else str(meta['dr']),source_model=Path(meta.get('source_run','')).name)
+ if meta['dr']==29:assert '29_clean' in Path(meta['source_run']).parts
  save(OUT/(sid+'.json'),dict(meta=desc,values=data,depth_image=depth_image))
  index.append(desc);qa.append(dict(scenario=sid,reconciled=True,buurten=len(data)))
  print(sid,len(data),flush=True)
@@ -112,6 +111,19 @@ for r in json.loads((BASE/'outputs/DP360_LIR_20261026/buurtmedianen.json').read_
  if p.exists():
   actual=json.loads(p.read_text(encoding='utf-8'))['values'][r['buurtcode']]['mortality']
   assert np.isclose(actual,r['mediane_mortaliteit_pct'],rtol=1e-6)
-save(OUT/'catalog.json',dict(scenarios=index,geography_year=2024,export_date='2026-10-27',municipalities=MUNICIPALITIES,quality='Voorlopige scenarioresultaten; geen gewogen trajectrisico. Ontbrekende stijgsnelheden en onvolledig permanentwatermasker.'))
+locations=sorted(expansion['locations'],key=lambda l:(not l['has_wisselpolder'],l['dr'],l['dp']))
+published_ids={s['id']for s in index}
+for obsolete in OUT.glob('DR*.json'):
+ if obsolete.stem not in published_ids:obsolete.unlink()
+save(OUT/'catalog.json',dict(scenarios=index,locations=locations,geography_year=2024,export_date=date.today().isoformat(),municipalities=MUNICIPALITIES,quality='Voorlopige scenarioresultaten; geen gewogen trajectrisico. Ontbrekende stijgsnelheden en onvolledig permanentwatermasker.'))
+missing=[{k:v for k,v in r.items()if k!='model'}for r in expansion['missing']]
+consequences=[dict(location=f"{s['dr']}-{s['dp']}",zss=s['zss'],variant=s['variant'],status='waterdiepte beschikbaar; SSM-gevolgen ontbreken')for s in index if len(s['available_metrics'])<5]
+save(OUT/'availability.json',dict(updated=date.today().isoformat(),missing_hydraulics=missing,missing_consequences=consequences,export_failures=expansion['export_failures']))
+lines=['# Beschikbaarheid scenario’s Westerschelde','','Alle 52 geïnventariseerde locaties zijn opgenomen. Locaties met wisselpolders staan bovenaan. Voor dijkring 29 wordt uitsluitend 29_clean gebruikt.','',f"Hydraulisch beschikbaar: {len(index)} scenario’s. Complete gevolgenlagen: {len(index)-len(consequences)}. Ontbrekende of onvoltooide hydraulische combinaties: {len(missing)}.",'','## Ontbrekende of onvoltooide hydraulische scenario’s','','| Dijkring–DP | ZSS [m] | Inrichting | Status |','|---|---:|---|---|']
+for r in missing:lines.append(f"| {r['location']} | +{r['zss']} | {r['variant']} | {r['status']} |")
+lines+=['','## SSM-gevolgen nog niet beschikbaar','','Deze combinaties hebben een waterdieptelaag, maar nog geen aan de geselecteerde modelrun gekoppelde volledige set schade, slachtoffers, getroffenen en mortaliteit.','', '| Dijkring–DP | ZSS [m] | Inrichting |','|---|---:|---|']
+for r in consequences:lines.append(f"| {r['location']} | +{r['zss']} | {r['variant']} |")
+lines+=['','Een aanwezige geometrie van een wisselpolder betekent niet dat alle varianten zijn doorgerekend. Niet-berekende inrichtingen zijn uitgeschakeld; afwezige wisselpolders worden als niet aanwezig gemarkeerd. Een lopende run wordt pas gebruikt na normale afronding en volledige dag-10-uitvoer. Bestaande SSM-gevolgen worden alleen hergebruikt wanneer bronmodel en geselecteerde run exact overeenkomen.']
+(ROOT/'BESCHIKBAARHEID.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
 save(ROOT/'scripts/data_qa.json',dict(scenarios=len(index),municipalities=13,checks=qa,dp360_medians_reconciled=True,source_geography_sha256=hashlib.sha256(GPKG.read_bytes()).hexdigest()))
 print('VALIDATED',len(index),'scenarios')
