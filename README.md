@@ -2,7 +2,7 @@
 
 Publieke, statische GitHub Pages-kaart met **MapLibre GL JS + PMTiles v3**. Alle 13 Zeeuwse gemeenten, wijken en buurten (CBS 2024 v1), met **52 doorbraakpunten** langs de Westerschelde. Eerst de 18 locaties met een aanwezige of geplande wisselpolder, daarna de 34 zonder wisselpolder.
 
-De atlas bevat 201 afgeronde hydraulische scenario’s met waterdiepte. Voor 27 daarvan zijn ook exact aan de gekozen modelrun gekoppelde SSM-gevolgen beschikbaar. Bij de overige 174 zijn de gevolgenlagen uitgeschakeld. Voor dijkring 29 / traject 29-3 is uitsluitend `29_clean` als resultatenbron toegestaan. Zie [BESCHIKBAARHEID.md](BESCHIKBAARHEID.md) voor alle 63 ontbrekende of onvoltooide hydraulische combinaties en ontbrekende gevolgenberekeningen.
+De atlas bevat 239 afgeronde hydraulische scenario’s met waterdiepte. Alle 239 hebben een complete set SSM-gevolgen gekoppeld aan de geselecteerde bronrun; de actuele aantallen staan in [BESCHIKBAARHEID.md](BESCHIKBAARHEID.md). Voor dijkring 29 / traject 29-3 is uitsluitend `29_clean` als resultatenbron toegestaan. Er ontbreken nog 25 hydraulische combinaties.
 
 ## Gebruik
 
@@ -33,7 +33,7 @@ Brongeometrie: CBS / Kadaster Wijk- en Buurtkaart 2024 v1, CC BY 4.0. Bron: loka
 
 Mortaliteit is **niet** slachtoffers/getroffenen en **geen** jaarlijkse overlijdenskans. Verwachte aantallen kunnen fracties bevatten. Scenario’s worden niet opgeteld; geen gewogen trajectrisico. FOU-maxima en dagelijkse MAP-maxima zijn verschillende exportmethoden; de exacte methode staat per scenario in `meta.depth_method`. Rastermaxima zijn niet gelijktijdig. De weergegeven gemeenten/wijken zijn context; gevolgen blijven per buurt.
 
-**Voorlopig:** ontbrekende stijgsnelheden en onvolledig permanentwatermasker. Geen resultaat betekent niet automatisch droog/veilig. Niet alle scenario-combinaties beschikbaar. DP360-volwassen 0/2 m is hydraulisch beschikbaar maar ontbrak nog in de gebruikte gevolgenanalyse. Lopende runs worden pas als resultaat gepubliceerd na normale afronding en volledige dag-10-uitvoer. Exportdatum: 28 oktober 2026.
+**Voorlopig:** ontbrekende stijgsnelheden en onvolledig permanentwatermasker. Geen resultaat betekent niet automatisch droog/veilig. Niet alle scenario-combinaties beschikbaar. Lopende runs worden pas als resultaat gepubliceerd na normale afronding en volledige dag-10-uitvoer. Exportdatum: 2 november 2026.
 
 ## Controle en hosting
 
@@ -43,4 +43,6 @@ GitHub Pages: publiceer de `main`-branch, map `/ (root)`. Alle URLs zijn relatie
 
 Bronnen: [CBS / PDOK](https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1?f=html&lang=nl), [PMTiles](https://docs.protomaps.com/pmtiles/maplibre), [MapLibre GL](https://maplibre.org/maplibre-gl-js/docs/).
 
-DP715: negen oorspronkelijke berekeningen zijn op 28 oktober 2026 vanuit de voormalige map 29 naar 29_clean overgenomen. De bijbehorende oorspronkelijke templates staan afzonderlijk onder DP715_bron_template; bestaande opgeschoonde templates blijven behouden. Dit zijn geïmporteerde resultaten, geen nieuwe berekeningen met het opgeschoonde netwerk. Alleen waterdiepte is beschikbaar; gekoppelde SSM-gevolgen ontbreken.
+DP715: negen oorspronkelijke berekeningen zijn op 28 oktober 2026 vanuit de voormalige map 29 naar 29_clean overgenomen. De bijbehorende oorspronkelijke templates staan afzonderlijk onder DP715_bron_template; bestaande opgeschoonde templates blijven behouden. Dit zijn geïmporteerde resultaten, geen nieuwe berekeningen met het opgeschoonde netwerk. De gekoppelde SSM-gevolgen zijn bij de aanvulling van 2 november 2026 meegenomen.
+
+Zie [RESULTATEN_20261102.md](RESULTATEN_20261102.md) voor de omgang met restartreeksen en de aanvullende SSM-berekeningen.

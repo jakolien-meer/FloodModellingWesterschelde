@@ -6,10 +6,15 @@ sys.path[:0]=[str(BASE/'outputs/atlas_run_packages'),str(BASE)]
 import numpy as np
 from netCDF4 import Dataset
 from export_ssm_10dagen import native_grid,write_grid,arr
+from hydraulic_series import output_parts,maximum
 OUT=BASE/'outputs/atlas_expansion_20261028';INV=json.loads((OUT/'inventory.json').read_text(encoding='utf-8'))
 POST=BASE.parent/'post-processing bestanden'
 known=[]
 legacy_audit=[]
+batch_manifest=BASE/'outputs/atlas_ssm_20261102/results.json'
+if batch_manifest.exists():
+ for row in json.loads(batch_manifest.read_text(encoding='utf8')):
+  if row.get('complete'):known.append((Path(row['inp']),Path(row['result']),row['meta']))
 def scenario_key(name):return name.casefold().replace('_zonder_wisselpolder','').replace('_wisselpolder_pionier','_pionier').replace('_wisselpolder_volwassen','_volwassen')
 for inp in (POST/'Invoer SSM').glob('DR*'):
  if (inp/'scenario.json').exists():
@@ -59,12 +64,12 @@ for r in sorted(INV['selected'],key=lambda r:(order[f"{r['dr']}-{r['dp']}"],r['d
   with Dataset(flow/'output/FlowFM_map.nc')as ds:
    times=arr(ds['time'][:]);assert np.any(np.isclose(times,864000,rtol=0,atol=.01)),'Geen exact dag-10-tijdstip'
    use=np.flatnonzero((times>0)&(times<=864000.01));assert len(use)
-   depth=np.full(ds['Mesh2d_waterdepth'].shape[1],np.nan)
-   for i in use:depth=np.fmax(depth,arr(ds['Mesh2d_waterdepth'][int(i),:]))
+   parts=output_parts(model)
+   depth=maximum(parts,'Mesh2d_waterdepth')
    assert np.all(depth[np.isfinite(depth)]>=0)
    grid=native_grid(ds)
    write_grid(inp,'waterdiepte',depth,grid,'Maximum waterdiepte uit MAP-uitvoer na t=0 tot dag 10','m',dict(source=str(flow/'output/FlowFM_map.nc'),method='maximum_beschikbare_MAP_na_start_tot_dag10'),asc=False)
-  meta=dict(scenario=sid,dr=r['dr'],dp=r['dp'],zss=r['zss'],variant=r['variant'],end_day=10,source_run=str(model),depth_speed_method='maximum_beschikbare_MAP_na_start_tot_dag10',return_period=r['return_period'])
+  meta=dict(scenario=sid,dr=r['dr'],dp=r['dp'],zss=r['zss'],variant=r['variant'],end_day=10,source_run=str(model),source_parts=[str(p) for p in parts],depth_speed_method='maximum_beschikbare_MAP_na_start_tot_dag10',return_period=r['return_period'])
   (inp/'scenario.json').write_text(json.dumps(meta,indent=2),encoding='utf-8')
   sources.append(dict(id=sid,inp=str(inp),result=None,meta=meta,consequences_available=False))
  except Exception as e:
