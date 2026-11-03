@@ -20,8 +20,13 @@ for rootname in ['29','29_clean','30','31','32','Wisselpolders']:
     if not model.is_dir() or not (m:=pattern.match(model.name)):continue
     dr,dp=int(m[1]),int(m[2]);variant=(m[3]or'Huidig').capitalize();suffix=m[5].lower()
     if any(s in suffix for s in ['diagnos','test','backup','restart']):
-     # This completed standard-kernel control is the verified deduplicated base.
-     if not(dr==29 and dp==760 and z==2 and suffix=='_test_unieke_1d2d_links_10d'):continue
+     # Geverifieerde 2 m-controles zonder de 288 dubbele 1D-2D-contactregels.
+     accepted_controls={
+      (730,'_test_unieke_1d2d_links_diagnose_10d'),
+      (760,'_test_unieke_1d2d_links_diagnose_10d'),
+      (760,'_test_unieke_1d2d_links_10d'),
+     }
+     if not(dr==29 and z==2 and (dp,suffix) in accepted_controls):continue
     key=f'{dr}-{dp}';loc=locations.setdefault(key,dict(id=key,dr=dr,dp=dp,has_wisselpolder=False,coordinates=None,return_periods=[]))
     if variant!='Huidig':loc['has_wisselpolder']=True
     if int(m[4])not in loc['return_periods']:loc['return_periods'].append(int(m[4]))
@@ -49,8 +54,9 @@ for rootname in ['29','29_clean','30','31','32','Wisselpolders']:
      except Exception as e:row['read_error']=type(e).__name__
     row['complete']=bool(row['finished'] and not row['fatal'] and (row['end_seconds']or 0)>=864000)
     row['mtime']=mp.stat().st_mtime if mp.exists() else model.stat().st_mtime
-    row['preferred']=('_atlas_20261027'in suffix or '_clean_unieke_links_10d_20261027'in suffix or suffix=='_test_unieke_1d2d_links_10d')
-    row['rank']=(int(row['preferred'])*100+int(row['complete'])*10+int('_10d_piekinit'in suffix)*3+int('rerun_10d'in directory.name)*2)
+    row['preferred']=('_atlas_20261027'in suffix or '_clean_unieke_links_10d_20261027'in suffix or suffix in {'_test_unieke_1d2d_links_10d','_test_unieke_1d2d_links_diagnose_10d'})
+    diagnostic_rank=200 if suffix=='_test_unieke_1d2d_links_diagnose_10d' else 0
+    row['rank']=(diagnostic_rank+int(row['preferred'])*100+int(row['complete'])*10+int('_10d_piekinit'in suffix)*3+int('rerun_10d'in directory.name)*2)
     candidates.setdefault((dr,dp,z,variant),[]).append(row)
 # Presence of a polygon also establishes a planned wisselpolder even if no run exists.
 for p in (BASE/'ModelgeneratieScript').glob('wisselpolder_*_DP*.shp'):
